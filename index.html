@@ -1,178 +1,191 @@
 <!DOCTYPE html>
-<html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>マイページログイン</title>
-        <script
-      src="https://kit.fontawesome.com/d0a601627a.js"
-      crossorigin="anonymous"
-    ></script>
-    <link
-      href="https://use.fontawesome.com/releases/v5.6.1/css/all.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <header>
-      <h1>
-        <img
-          src="https://i.ibb.co/Wv8X3LVh/1.png"
-          alt="IMG-5451"
-          width="100px"
-          height="100px"
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/d0a601627a.js" crossorigin="anonymous"></script>
+    <script src="https://yubinbango.github.io/yubinbango/yubinbango.js" charset="UTF-8"></script>
+    <link href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    
+    <title>マップ</title>
+</head>
+<body>
+    
+    <h1>
+    <img
+        src="https://i.ibb.co/Wv8X3LVh/1.png"
+        alt="IMG-5451"
+        width="100px"
+        height="100px"
         />
         クールシェア宝塚2025<br />
         スタンプラリーカード
-      </h1>
-    </header>
+    </h1>
+
+    <script>
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // 地球の半径 (km)
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c; // 距離 (km)
+        }
+
+        let storeData = [];
+
+        fetch('https://docs.google.com/spreadsheets/d/1v_EByc8HVuZVL0SfeC-QOZyOFV7IVZqTdsKs37_r-74/gviz/tq?tqx=out:csv')
+            .then(response => response.text())  // CSVデータをテキスト形式で取得
+            .then(csvText => {
+                const parsedData = Papa.parse(csvText, { header: true });
+                storeData = parsedData.data.map(entry => ({
+                    name: entry.name,
+                    lat: parseFloat(entry.lat),
+                    lon: parseFloat(entry.lon),
+                    businessHour: entry.businessHour,
+                    message: entry.message,
+                    open: entry.open,
+                    area: entry.area
+                }));
+                console.log(storeData);  // storeDataの内容をコンソールに表示
+            })
+            .catch(error => console.error('Error fetching or parsing CSV data:', error));
+
+        function sortByDistance() {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    const sortedStores = storeData
+                        .map(store => ({
+                            ...store,
+                            distance: getDistance(userLat, userLon, store.lat, store.lon)
+                        }))
+                        .sort((a, b) => a.distance - b.distance);
+
+                    const top10 = sortedStores.slice(0, 10);
+                    displayStores(top10);
+                },
+                (error) => {
+                    console.error("位置情報の取得に失敗しました:", error);
+                }
+            );
+        }
+
+        function filterByArea(){
+            const selectedArea = document.getElementById("area-filter").value;
+
+            const filterdStores = selectedArea
+            
+            ? storeData.filter(store => store.area === selectedArea)
+            : storeData;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    const sortedStores = filterdStores
+                        .map(store => ({
+                            ...store,
+                            distance: getDistance(userLat, userLon, store.lat, store.lon)
+                        }))
+                        .sort((a, b) => a.distance - b.distance);
+
+                    const top10 = sortedStores.slice(0, 10);
+                    displayStores(top10);
+                },
+                (error) => {
+                    console.error("位置情報の取得に失敗しました:", error);
+                }
+            );
+        }
+
+        function displayStores(stores) {
+            const list = document.getElementById("store-list");
+            list.innerHTML = "";
+            stores.forEach(store => {
+                const li = document.createElement("li");
+                li.innerHTML = ` ${store.name}<br><i class="fas fa-map-marker-alt store-icon"></i>${store.distance.toFixed(2)}km<br>
+                                ${store.open}<br>${store.businessHour}<br>${store.message}<br>
+                                <a target="_blank" class=store-link href="https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lon}">Googleマップへ</a><br>
+                                `;
+                list.appendChild(li);
+            });
+        }
+    </script>
+
+<h2>◉地区ごとに並び替える：<br>
+<select id="area-filter" onchange="filterByArea()">
+    <option value="">全て表示</option>
+    <option value="光明">光明</option>
+    <option value="高司">高司</option>
+    <option value="仁川">仁川</option>
+    <option value="末成">末成</option>
+    <option value="良元">良元</option>
+    <option value="宝塚第一">宝塚第一</option>
+    <option value="末広">末広</option>
+    <option value="逆瀬台">逆瀬台</option>
+    <option value="西山">西山</option>
+    <option value="すみれ台">すみれ台</option>
+    <option value="売布">売布</option>
+    <option value="宝塚">宝塚</option>
+    <option value="安倉">安倉</option>
+    <option value="安倉北">安倉北</option>
+    <option value="小浜">小浜</option>
+    <option value="美座">美座</option>
+    <option value="丸橋">丸橋</option>
+    <option value="長尾">長尾</option>
+    <option value="長尾南">長尾南</option>
+    <option value="山手台">山手台</option>
+    <option value="中山台">中山台</option>
+    <option value="長尾台">長尾台</option>
+    <option value="西谷">西谷</option>
+
+
+</select></h2>
+    <h2>◉近い順に並び替える：</h2>
+    <button onclick="sortByDistance()">ここをタップ！！</button><br>
+    <p>現在地から近い10個のスポットが表示されます！</p>
     
-        <main>
-            <h2>マップ</h2>
-            <img class="map" src="IMG_5541.PNG" usemap="#ImageMap" alt="" />
-            <map name="ImageMap">
-              <area shape="rect" coords="396,662,427,679" href="#komyo" alt="" />
-              <area shape="rect" coords="418,691,450,718" href="#takatsukasa" alt="" />
-              <area shape="rect" coords="368,713,403,738" href="#nigawa" alt="" />
-              <area shape="rect" coords="414,640,449,663" href="#suenari" alt="" />
-              <area shape="rect" coords="379,676,415,697" href="#ryougen" alt="" />
-              <area shape="rect" coords="280,595,333,624" href="#takaradukadaiichi" alt="" />
-              <area shape="rect" coords="381,618,418,641" href="#suehiro" alt="" />
-              <area shape="rect" coords="331,657,374,687" href="#nishiyama" alt="" />
-              <area shape="rect" coords="350,501,387,539" href="#sumiregaoka" alt="" />
-              <area shape="rect" coords="406,547,438,576" href="#mehu" alt="" />
-              <area shape="rect" coords="335,547,390,585" href="#takaraduka" alt="" />
-              <area shape="rect" coords="444,619,497,652" href="#akura" alt="" />
-              <area shape="rect" coords="424,575,462,598" href="#kohama" alt="" />
-              <area shape="rect" coords="381,592,421,621" href="#miza" alt="" />
-              <area shape="rect" coords="485,540,547,577" href="#nagao" alt="" />
-              <area shape="rect" coords="450,420,518,503" href="#yamatedai" alt="" />
-              <area shape="rect" coords="396,410,453,489" href="#nakayamadai" alt="" />
-              <area shape="rect" coords="245,227,434,368" href="#nishitani" alt="" />
-            </map>
+    <ul id="store-list" class="store-list">
 
-            <h2>全体マップ</h2>
-            <iframe src="https://www.google.com/maps/d/embed?mid=1lAKW-p5WHlteCxdWoGo-LhpNrFhYkqM&ehbc=2E312F" width="640" height="480"></iframe>
+    </ul>
+
+    <h2>全体マップ</h2>
+    <iframe src="https://www.google.com/maps/d/embed?mid=1lAKW-p5WHlteCxdWoGo-LhpNrFhYkqM&ehbc=2E312F" width="640" height="480"></iframe><br>
+
+    <h2>Google Maps テスト！</h2>
+    <div id="map"></div>
 
 
-                <h3 id="komyo">光明</h3>
-                <table>
-                    <tbody>
-                        <tr>
-                            <td>スポット名称</td>
-                            <td>住所</td>
-                            <td>行ける日</td>
-                            <td class="hp">ホームページ</td>
-                            <td>スタンプ設置</td>
-                            <td>景品お渡し</td>
-                        </tr>
-                        <tr>
-                            <td>メダカ工房</td>
-                            <td>福井町32-36</td>
-                            <td>月・木・金
-                10:00~17:00</td>
-                            <td></td>
-                            <td>◯</td>
-                            <td>◯</td>
-                        </tr>
-                        <tr>
-                            <td>光明デイサービスセンター</td>
-                            <td>光明町10-24</td>
-                            <td>毎日
-                9:00~17:00</td>
-                            <td><a href="http://takarazukashakyo.life.coocan.jp/">ホームページ</a></td>
-                            <td>◯</td>
-                            <td>◯</td>
-                        </tr>
-                        <tr>
-                            <td>スミレン小林
-                介護ステーション</td>
-                            <td>小林4-7-47</td>
-                            <td>月〜金
-                9:00~17:00</td>
-                            <td><a href="//takarazukashakyo.life.coocan.jp/">ホームページ</a></td>
-                            <td>◯</td>
-                            <td>◯</td>
-                        </tr>
-                        <tr>
-                            <td>(株)近畿メディカル
-                えがおDe薬局　宝塚店</td>
-                            <td>福井町32-17
-                松本ビル103</td>
-                            <td>月〜金 9:00~19:00
-                土 9:00~13:00</td>
-                            <td><a href="https://imatoku-medic.com">ホームページ</a></td>
-                            <td>◯</td>
-                            <td>◯</td>
-                        </tr>
-                    </tbody>
-                </table>
+        
 
-                <style>
-                    table , td, th {
-	                    border: 1px solid #595959;
-	                    border-collapse: collapse;
-	                    width:100%
-                    }
-                    td, th {
-	                    padding: 3px;
-                    	width: 20px;
-	                    height: 25px;
-                    }
-                    th {
-	                    background: #f0e6cc;
-                    }
-                    .even {
-                    	background: #fbf8f0;
-                    }
-                    .odd {
-                	background: #fefcf9;
-                    }
-
-                </style>
-
-                <h3 id="takatsukasa">高司</h3>
-                <h3 id="nigawa">仁川</h3>
-                <h3 id="suenari">末成</h3>
-                <h3 id="ryougen">良元</h3>
-                <h3 id="takaradukadaiichi">宝塚第一</h3>
-                <h3 id="suehiro">末広</h3>
-                <h3 id="sakasedai">逆瀬台</h3>
-                <h3 id="nishiyama">西山</h3>
-                <h3 id="sumiregaoka">すみれが丘</h3>
-                <h3 id="mehu">売布</h3>
-                <h3 id="takaraduka">宝塚</h3>
-                <h3 id="akura">安倉</h3>
-                <h3 id="akurakita">安倉北</h3>
-                <h3 id="kohama">小浜</h3>
-                <h3 id="miza">美座</h3>
-                <h3 id="maruhashi">丸橋</h3>
-                <h3 id="nagao">長尾</h3>
-                <h3 id="nagaominami">長尾南</h3>
-                <h3 id="yamatedai">山手台</h3>
-                <h3 id="nakayamadai">中山台</h3>
-                <h3 id="nagaodai">長尾台</h3>
-                <h3 id="nishitani">西谷</h3>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                <br>
-                
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+     
 
 
 
-        </main>
-   
-       <nav>
+
+
+
+<nav>
     <ul class="menu">
       <li>
         <a href="https://chikarauemori.github.io/test57/" target="_self"
@@ -207,9 +220,8 @@
     </ul>
   </nav>
 
-	  
+ 
 <style>
-
       .menu {
         position: fixed;
         left: 0;
@@ -252,6 +264,7 @@
           padding: 5px;
         }
       }
+
           h1 {
         font-family: sans-serif;
         display: flex;
@@ -265,19 +278,67 @@
         font-size: 85%;
       }
 
-      h2 {
-        font-family: sans-serif;
-        border-style: double;
+      input {
+        font-size: 200%;
+        background: skyblue;
+        display: inline-block;
       }
 
-      .map {
-	      width: 100%;
+      button {
+        font-size: 200%;
+        display: inline-block;
       }
-      iframe {
-	      width: 90%;
-      }	
+      .information{
+        border-style: dotted;
+        display: inline-block;
+      }
+       
+       iframe {
+         width: 100%;
+       }
 
-    </style>
+       .store-list {
+        padding: 0;
+       }
+
+        .store-list li {
+        background: #fff;
+        border-left: solid 6px skyblue;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 12px 16px;
+        margin-bottom: 12px;
+        transition: all 0.3 ease; 
+    }
+
+    .store-list li:hover{
+        background: #f0f8ff;
+        box-shadow: 0 8 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .store-icon {
+        color: tomato; 
+        margin-right: 6px;
+    }
+
+    .store-link {
+        display: inline-block;
+        margin-top: 6px;
+        color: #007bff;
+        text-decoration: none;
+        font-size:0.9em;
+    }
+
+    .store-link:hover {
+        text-decoration: underline;
+    }
+  
+      </style>
   </body>
 </html>
+</body>
+</html>
+
+
+
 
