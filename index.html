@@ -108,6 +108,36 @@
             );
         }
 
+        function filterByIndustry(){
+            const selectedIndustry = document.getElementById("industry-filter").value;
+
+            const filterdIndustry = selectedIndustryNo
+            
+            ? storeData.filter(store => store.industryNo === selectedIndustryNo)
+            : storeData;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    const sortedIndustry = filterdIndustry
+                        .map(store => ({
+                            ...store,
+                            distance: getDistance(userLat, userLon, store.lat, store.lon)
+                        }))
+                        .sort((a, b) => a.distance - b.distance);
+
+                    const top10 = sortedIndustry.slice(0, 10);
+                    displayStores(top10);
+                },
+                (error) => {
+                    console.error("位置情報の取得に失敗しました:", error);
+                }
+            );
+        }
+
+        
         function displayStores(stores) {
             const list = document.getElementById("store-list");
             list.innerHTML = "";
@@ -148,6 +178,22 @@
     <option value="中山台">中山台</option>
     <option value="長尾台">長尾台</option>
     <option value="西谷">西谷</option>
+    
+<h2>◉業種ごとに並び替える：<br>
+<select id="industry-filter" onchange="filterByIndustry()">
+    <option value="">全て表示</option>
+    <option value="1">理容店・美容店</option>
+    <option value="2">個人商店・保険代理店・ガソリンスタンド</option>
+    <option value="3">飲食店・食品個人商店</option>
+    <option value="4">大型商業施設・スーパー・コンビニエンスストア</option>
+    <option value="5">銀行</option>
+    <option value="6">建築・建材・資材・リフォーム</option>
+    <option value="7">メーカー・工場・印刷</option>
+    <option value="8">教室・レクレーション</option>
+    <option value="9">地域活動拠点</option>
+    <option value="10">公共施設</option>
+    <option value="11">薬局・福祉サービス事業所・福祉施設</option>
+    <option value="12">その他</option>
 
 
 </select></h2>
