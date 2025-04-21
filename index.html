@@ -53,7 +53,12 @@
                     open: entry.open,
                     area: entry.area,
                     industry: entry.industry,
-                    access: entry.access
+                    access: entry.access,
+                    spot1: entry.spot1,
+                    spot2: entry.spot2,
+                    spot3: entry.spot3,
+                    spot4: entry.spot4
+
                 }));
                 console.log(storeData);  // storeDataの内容をコンソールに表示
             })
@@ -167,27 +172,79 @@
                 }
             );
         }
+
+        function filterByStamp(){
+            const selectedStamp = document.getElementById("stamp-filter").value;
+
+            const filterdStoresStamp = selectedStamp
+            
+            ? storeData.filter(store => store.spot2.trim() === selectedStamp.trim())
+            : storeData;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    const sortedStoresStamp = filterdStoresStamp
+                        .map(store => ({
+                            ...store,
+                            distance: getDistance(userLat, userLon, store.lat, store.lon)
+                        }))
+                        .sort((a, b) => a.distance - b.distance);
+
+                    const top10 = sortedStoresStamp.slice(0, 10);
+                    displayStores(top10);
+                },
+                (error) => {
+                    console.error("位置情報の取得に失敗しました:", error);
+                }
+            );
+        }
+        
         
         function displayStores(stores) {
-            const list = document.getElementById("store-list");
-            list.innerHTML = "";
-            stores.forEach(store => {
-                const li = document.createElement("li");
-                li.innerHTML = ` ${store.name}<br><i class="fas fa-map-marker-alt store-icon"></i>${store.distance.toFixed(2)}km<br>${store.access}<br><br>
-                                ${store.open}<br>${store.businessHour}<br>${store.message}<br>
-                                <a target="_blank" class=store-link href="https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lon}">Googleマップへ</a><br>
-                                `;
-                list.appendChild(li);
-            });
+    const list = document.getElementById("store-list");
+    list.innerHTML = "";
+    stores.forEach(store => {
+        const li = document.createElement("li");
+        let html =`${store.name}&nbsp;`;
+
+        if (store.spot1 === "○") {
+            html += `<i class="fa-solid fa-shop"></i>&nbsp`;
         }
+
+        if (store.spot2 === "○") {
+            html += `<i class="fa-solid fa-stamp i-top"></i>&nbsp`;
+        }
+
+        if (store.spot3 === "○") {
+            html += `<i class="fa-solid fa-circle-info"></i>&nbsp`;
+        }
+
+        if (store.spot4 === "○") {
+            html += `<i class="fa-solid fa-gift"></i>`;
+        }
+
+        html += `<br><i class="fas fa-map-marker-alt store-icon"></i>${store.distance.toFixed(2)}km<br>${store.access}<br><br>
+                 ${store.open}<br>${store.businessHour}<br>${store.message}<br>
+                 <a target="_blank" class="store-link" href="https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lon}">Googleマップへ</a><br>`;
+
+        li.innerHTML = html;
+        list.appendChild(li);
+    });
+}
     </script>
 
     <h2>スポットを並び替え</h2>
     
 
 <div  class="tabs">
-    <input id="near" type="radio" name="tab_item" aria-label="近い順" checked/>
+    <input id="near" type="radio" name="tab_item" aria-label="近い順" />
   <label class="tab_item" for="near">近い順</label>
+
+  <input id="stamp" type="radio" name="tab_item" aria-label="スタンプ" checked />
+  <label class="tab_item" for="stamp">スタンプ</label>
 
     <input id="area" type="radio" name="tab_item" aria-label="地区" />
   <label class="tab_item" for="area">地区</label>
@@ -208,6 +265,21 @@
 
             </p>
         </div>
+    </div>
+
+    <div class="tab_content" id="stamp_content">
+      <div class="tab_content_description">
+          <p class="c-txtsp">  
+
+            <h2>スタンプ獲得スポットを表示：<br>
+            <select id="stamp-filter" onchange="filterByStamp()">
+                <option value="">全て表示</option>
+                <option value="○">スタンプ獲得可能スポット</option>
+            </select>
+        </h2>
+
+          </p>
+      </div>
     </div>
 
     <div class="tab_content" id="area_content">
@@ -302,7 +374,7 @@
     }
 
     .tab_item{
-        width: calc(100% / 4);
+        width: calc(100% / 5);
         height: 50px;
         border-bottom: 3px solid  #66cc99;
         background-color: #d9d9d9;
@@ -332,6 +404,7 @@
     }
 
     #near:checked ~ #near_content,
+    #stamp:checked ~ #stamp_content,
     #area:checked ~ #area_content,
   #industry:checked ~ #industry_content,
   #open:checked ~ #open_content{
