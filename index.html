@@ -173,7 +173,7 @@
             list.innerHTML = "";
             stores.forEach(store => {
                 const li = document.createElement("li");
-                li.innerHTML = ` ${store.name}<br><i class="fas fa-map-marker-alt store-icon"></i>${store.distance.toFixed(2)}km<br>${store.access}<br>
+                li.innerHTML = ` ${store.name}<br><i class="fas fa-map-marker-alt store-icon"></i>${store.distance.toFixed(2)}km<br>${store.access}<br><br>
                                 ${store.open}<br>${store.businessHour}<br>${store.message}<br>
                                 <a target="_blank" class=store-link href="https://www.google.com/maps/dir/?api=1&destination=${store.lat},${store.lon}">Googleマップへ</a><br>
                                 `;
